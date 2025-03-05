@@ -57,7 +57,32 @@ const EditForm = defineComponent({
             emit('formClosed');
         };
 
-        return { closeForm };
+        // Variable reactiva para la fecha de estreno
+        const rawDate = Vue.ref(props.itemdata.data.find(d => d.name === 'datePublished').value);
+
+        // Computed para formatear la fecha cuando el usuario termine de editar
+        const formattedDate = Vue.computed({
+            get: () => rawDate.value,
+            set: (newValue) => {
+                // Si solo tiene 4 dígitos (año), añadir '-01-01'
+                if (/^\d{4}$/.test(newValue)) {
+                    rawDate.value = `${newValue}-01-01`;
+                } 
+                // Si tiene el formato correcto, actualizar el valor
+                else if (/^\d{4}-\d{2}-\d{2}$/.test(newValue)) {
+                    rawDate.value = newValue;
+                }
+                // Si es un formato incorrecto, no modificarlo hasta que sea válido
+            }
+        });
+
+        // Función que se activa al salir del campo de fecha
+        const validateDate = () => {
+            // Asignamos la fecha ya validada al itemdata
+            props.itemdata.data.find(d => d.name === 'datePublished').value = rawDate.value;
+        };
+
+        return { closeForm, formattedDate, validateDate };
     },
     template: `
         <div class="card p-3 bg-light">
@@ -69,8 +94,8 @@ const EditForm = defineComponent({
                 </div>
 
                 <div class="mb-3">
-                    <label :for="'year-' + index" class="form-label">Año</label>
-                    <input :id="'year-' + index" v-model="itemdata.data.find(d => d.name === 'datePublished').value" type="number" class="form-control">
+                    <label :for="'year-' + index" class="form-label">Fecha de Estreno</label>
+                    <input :id="'year-' + index" v-model="formattedDate" @blur="validateDate" type="text" class="form-control" placeholder="YYYY-MM-DD o YYYY">
                 </div>
 
                 <div class="mb-3">
@@ -83,6 +108,8 @@ const EditForm = defineComponent({
         </div>
     `
 });
+
+
 
 // Componente item-data
 const ItemData = defineComponent({
