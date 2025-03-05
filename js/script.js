@@ -37,12 +37,49 @@ const server_data = {
     }
 };
 
+const { createApp, defineComponent, reactive, ref } = Vue;
+
 // Componente edit-form
 const EditForm = defineComponent({
+    props: {
+        itemdata: {
+            type: Object,
+            required: true
+        },
+        index: {
+            type: Number,
+            required: true
+        }
+    },
+    emits: ['formClosed'],
+    setup(props, { emit }) {
+        const closeForm = () => {
+            emit('formClosed');
+        };
+
+        return { closeForm };
+    },
     template: `
-        <div>
-            <h2>Edit Form</h2>
-            <!-- Aquí iría el formulario de edición -->
+        <div class="card p-3 bg-light">
+            <h5>Editar Película</h5>
+            <form>
+                <div class="mb-3">
+                    <label :for="'title-' + index" class="form-label">Título</label>
+                    <input :id="'title-' + index" v-model="itemdata.data.find(d => d.name === 'name').value" type="text" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label :for="'year-' + index" class="form-label">Año</label>
+                    <input :id="'year-' + index" v-model="itemdata.data.find(d => d.name === 'datePublished').value" type="number" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label :for="'director-' + index" class="form-label">Director</label>
+                    <input :id="'director-' + index" v-model="itemdata.data.find(d => d.name === 'director').value" type="text" class="form-control">
+                </div>
+
+                <button @click.prevent="closeForm" class="btn btn-secondary">Cerrar</button>
+            </form>
         </div>
     `
 });
@@ -53,15 +90,38 @@ const ItemData = defineComponent({
         item: {
             type: Object,
             required: true
+        },
+        index: {
+            type: Number,
+            required: true
         }
     },
+    setup(props) {
+        const isEditing = ref(false);
+
+        const toggleEditFormVisibility = () => {
+            isEditing.value = !isEditing.value;
+        };
+
+        return { isEditing, toggleEditFormVisibility };
+    },
     template: `
-        <div>
-            <h3>{{ item.data.find(d => d.name === 'name').value }}</h3>
-            <p>{{ item.data.find(d => d.name === 'description').value }}</p>
-            <p><strong>Director:</strong> {{ item.data.find(d => d.name === 'director').value }}</p>
-            <p><strong>Release Date:</strong> {{ item.data.find(d => d.name === 'datePublished').value }}</p>
-            <a :href="item.href" target="_blank">More Info</a>
+        <div class="card mb-3 p-3">
+            <div v-if="!isEditing">
+                <h3>{{ item.data.find(d => d.name === 'name').value }}</h3>
+                <p>{{ item.data.find(d => d.name === 'description').value }}</p>
+                <p><strong>Director:</strong> {{ item.data.find(d => d.name === 'director').value }}</p>
+                <p><strong>Release Date:</strong> {{ item.data.find(d => d.name === 'datePublished').value }}</p>
+                <a :href="item.href" class="btn btn-primary" target="_blank">Más Info</a>
+                <button @click="toggleEditFormVisibility" class="btn btn-warning ms-2">Editar</button>
+            </div>
+
+            <edit-form 
+                v-if="isEditing" 
+                :itemdata="item" 
+                :index="index" 
+                @formClosed="toggleEditFormVisibility">
+            </edit-form>
         </div>
     `
 });
@@ -71,10 +131,20 @@ const app = createApp({
     setup() {
         const col = reactive(server_data.collection);
 
-        return {
-            col
-        };
-    }
+        return { col };
+    },
+    template: `
+        <div class="container mt-4">
+            <div class="jumbotron text-center p-4 bg-light rounded">
+                <h1 id="title">{{ col.title }}</h1>
+            </div>
+            <div class="row">
+                <div class="col-lg-4 col-md-6 col-sm-12" v-for="(item, index) in col.items" :key="index">
+                    <item-data :item="item" :index="index"></item-data>
+                </div>
+            </div>
+        </div>
+    `
 });
 
 // Registrar los componentes globalmente
